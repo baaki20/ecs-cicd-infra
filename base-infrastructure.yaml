@@ -279,84 +279,9 @@ Resources:
     Properties:
       LogGroupName: !Sub '/ecs/fargate/${AWS::StackName}-App'
 
-Outputs:
-  VPCId:
-    Description: The ID of the VPC
-    Value: !Ref VPC
-    Export:
-      Name: !Sub '${AWS::StackName}-VPCId'
-  PrivateSubnet1:
-    Description: The ID of Private Subnet 1
-    Value: !Ref PrivateSubnet1
-    Export:
-      Name: !Sub '${AWS::StackName}-PrivateSubnet1'
-  PrivateSubnet2:
-    Description: The ID of Private Subnet 2
-    Value: !Ref PrivateSubnet2
-    Export:
-      Name: !Sub '${AWS::StackName}-PrivateSubnet2'
-  FargateSecurityGroup:
-    Description: The ID of the Fargate Security Group
-    Value: !Ref FargateSecurityGroup
-    Export:
-      Name: !Sub '${AWS::StackName}-FargateSecurityGroup'
-  ECRRepositoryName:
-    Description: The name of the ECR Repository
-    Value: !Ref ECRRepository
-    Export:
-      Name: !Sub '${AWS::StackName}-ECRRepositoryName'
-  ECSCluster:
-    Description: The name of the ECS Cluster
-    Value: !Ref ECSCluster
-    Export:
-      Name: !Sub '${AWS::StackName}-ECSCluster'
-  ALBEndpoint:
-    Description: The DNS name of the Application Load Balancer
-    Value: !GetAtt ALB.DNSName
-    Export:
-      Name: !Sub '${AWS::StackName}-ALBEndpoint'
-  TargetGroup:
-    Description: The ARN of the main Target Group
-    Value: !Ref TargetGroup
-    Export:
-      Name: !Sub '${AWS::StackName}-TargetGroup'
-  BlueTargetGroup:
-    Description: The ARN of the Blue Target Group
-    Value: !Ref BlueTargetGroup
-    Export:
-      Name: !Sub '${AWS::StackName}-BlueTargetGroup'
-  TestListener:
-    Description: The ARN of the Test Listener
-    Value: !Ref TestListener
-    Export:
-      Name: !Sub '${AWS::StackName}-TestListener'
-  Listener:
-    Description: The ARN of the main Listener
-    Value: !Ref Listener
-    Export:
-      Name: !Sub '${AWS::StackName}-Listener'
-  LogGroup:
-    Description: The ARN of the CloudWatch Log Group
-    Value: !GetAtt LogGroup.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-LogGroup'
-  ECSTaskExecutionRoleArn:
-    Description: The ARN of the ECS Task Execution Role
-    Value: !GetAtt ECSTaskExecutionRole.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-ECSTaskExecutionRoleArn'
-  EventBridgeRoleArn:
-    Description: The ARN of the EventBridge Role
-    Value: !GetAtt EventBridgeRole.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-EventBridgeRoleArn'
-  CodeDeployRoleArn:
-    Description: The ARN of the CodeDeploy Role
-    Value: !GetAtt CodeDeployRole.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-CodeDeployRoleArn'
-  CodePipelineRoleArn:
-    Description: The ARN of the CodePipeline Role
-    Value: !GetAtt CodePipelineRole.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-CodePipelineRoleArn'
+  AppInfrastructureStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./app-infrastructure.yaml
+      Parameters:
+        StackName: !Sub '${AWS::StackName}'

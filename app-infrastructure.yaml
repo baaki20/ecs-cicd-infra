@@ -4,11 +4,6 @@ Description: >
   including the ECS service and task definition, CodeDeploy application, and the
   CodePipeline for blue/green deployment.
 
-Parameters:
-  StackName:
-    Type: String
-    Description: The name of the base infrastructure stack.
-
 Resources:
   # --- CodeDeploy and Pipeline Resources ---
   CodeDeployApplication:
