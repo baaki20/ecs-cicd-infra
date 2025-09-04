@@ -284,4 +284,4 @@ Resources:
     Properties:
       TemplateURL: app-infrastructure.yaml
       Parameters:
-        StackName: !Sub '${AWS::StackName}'
+        StackName: !Ref 'AWS::StackName'
