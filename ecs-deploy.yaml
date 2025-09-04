@@ -1,4 +1,4 @@
-- template-file-path: base-infrastructure.yaml
-  stack-name: ecs-cicd-lab-stack
-  parameters: {}
-  tags: {}
+template-file-path: base-infrastructure.yaml
+stack-name: ecs-cicd-lab-stack
+parameters: {}
+tags: {}
