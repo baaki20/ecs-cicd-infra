@@ -282,6 +282,6 @@ Resources:
   AppInfrastructureStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./app-infrastructure.yaml
+      TemplateURL: app-infrastructure.yaml
       Parameters:
-        StackName: !Sub '${AWS::StackName}'
+        StackName: !Ref 'AWS::StackName'
