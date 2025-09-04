@@ -266,7 +266,7 @@ Resources:
                 Version: '1'
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
-                DeploymentGroupName: !GetAtt CodeDeployDeploymentGroup.DeploymentGroupName
+                DeploymentGroupName: !Ref CodeDeployDeploymentGroup
                 TaskDefinitionTemplateFileName: 'taskdef.json'
                 AppSpecTemplateFileName: 'appspec.yaml'
                 ImageId: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:latest'
