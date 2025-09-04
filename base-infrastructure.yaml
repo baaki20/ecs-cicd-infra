@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  This template provisions all the necessary AWS infrastructure for the ECS CI/CD Lab,
-  including the VPC, subnets, security groups, ALB, ECR, ECS cluster, and the CodePipeline for blue/green deployment.
+  This template provisions the foundational AWS infrastructure for the ECS CI/CD Lab,
+  including the VPC, subnets, security groups, ALB, ECR, ECS cluster, and IAM roles.
 
 Resources:
   # --- Network Resources ---
@@ -214,119 +214,7 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref BlueTargetGroup
 
-  # --- Pipeline and CodeDeploy Resources ---
-  CodeDeployApplication:
-    Type: 'AWS::CodeDeploy::Application'
-    Properties:
-      ApplicationName: !Sub '${AWS::StackName}-ECS-CodeDeploy-App'
-      ComputePlatform: ECS
-
-  CodeDeployDeploymentGroup:
-    Type: 'AWS::CodeDeploy::DeploymentGroup'
-    Properties:
-      ApplicationName: !Ref CodeDeployApplication
-      DeploymentGroupName: !Sub '${AWS::StackName}-ECS-CodeDeploy-DG'
-      DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
-      ServiceRoleArn: !GetAtt CodeDeployRole.Arn
-      DeploymentStyle:
-        DeploymentOption: WITH_TRAFFIC_CONTROL
-        DeploymentType: BLUE_GREEN
-      EcsServices:
-        - ClusterName: !Ref ECSCluster
-          ServiceName: !Ref ECSService
-      LoadBalancerInfo:
-        TargetGroupPairInfoList:
-          - TargetGroups:
-              - TargetGroupArn: !Ref TargetGroup
-              - TargetGroupArn: !Ref BlueTargetGroup
-            ProdTrafficRoute:
-              ListenerArns:
-                - !Ref Listener
-            TestTrafficRoute:
-              ListenerArns:
-                - !Ref TestListener
-      BlueGreenDeploymentConfiguration:
-        TerminateBlueInstancesOnDeploymentSuccess:
-          Action: TERMINATE
-          TerminationWaitTimeInMinutes: 5
-
-  CodePipeline:
-    Type: AWS::CodePipeline::Pipeline
-    Properties:
-      Name: !Sub '${AWS::StackName}-Pipeline'
-      RoleArn: !GetAtt CodePipelineRole.Arn
-      Stages:
-        - Name: Deploy
-          Actions:
-            - Name: Deploy
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CodeDeploy
-                Version: '1'
-              Configuration:
-                ApplicationName: !Ref CodeDeployApplication
-                DeploymentGroupName: !Ref CodeDeployDeploymentGroup
-                TaskDefinitionTemplateFileName: 'taskdef.json'
-                AppSpecTemplateFileName: 'appspec.yaml'
-                ImageId: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:latest'
-              OutputArtifacts:
-                - Name: DeployArtifact
-              RunOrder: 1
-
-  # --- ECS Service and Task Definition ---
-  ECSService:
-    Type: 'AWS::ECS::Service'
-    Properties:
-      Cluster: !Ref ECSCluster
-      ServiceName: !Sub '${AWS::StackName}-Service'
-      TaskDefinition: !Ref ECSTaskDefinition
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          Subnets:
-            - !Ref PrivateSubnet1
-            - !Ref PrivateSubnet2
-          SecurityGroups:
-            - !Ref FargateSecurityGroup
-          AssignPublicIp: 'DISABLED'
-      DeploymentConfiguration:
-        Alarms:
-          AlarmNames:
-            - !Ref Alarm
-          Enable: true
-        MaximumPercent: 200
-        MinimumHealthyPercent: 100
-      DeploymentController:
-        Type: CODE_DEPLOY
-      LoadBalancers:
-        - TargetGroupArn: !Ref TargetGroup
-          ContainerName: ecs-cicd-app
-          ContainerPort: 8080
-
-  ECSTaskDefinition:
-    Type: 'AWS::ECS::TaskDefinition'
-    Properties:
-      Family: !Sub '${AWS::StackName}-TaskDefinition'
-      RequiresCompatibilities:
-        - FARGATE
-      NetworkMode: awsvpc
-      Cpu: 256
-      Memory: 512
-      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
-      ContainerDefinitions:
-        - Name: ecs-cicd-app
-          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}:latest'
-          PortMappings:
-            - ContainerPort: 8080
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref LogGroup
-              awslogs-region: !Ref 'AWS::Region'
-              awslogs-stream-prefix: ecs
-
-  # --- IAM Roles for ECS ---
+  # --- IAM Roles for ECS, Pipeline, and CodeDeploy ---
   ECSTaskExecutionRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -340,29 +228,6 @@ Resources:
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
 
-  # --- CloudWatch Log Group and Alarm ---
-  LogGroup:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      LogGroupName: !Sub '/ecs/fargate/${AWS::StackName}-App'
-
-  Alarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Properties:
-      AlarmName: !Sub '${AWS::StackName}-FailedDeployAlarm'
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 1
-      Threshold: 1
-      Namespace: 'AWS/CodeDeploy'
-      MetricName: 'DeploymentFailed'
-      Dimensions:
-        - Name: ApplicationName
-          Value: !Ref CodeDeployApplication
-        - Name: DeploymentGroupName
-          Value: !Ref CodeDeployDeploymentGroup
-      Statistic: Sum
-
-  # --- IAM Roles for Pipeline and CodeDeploy ---
   EventBridgeRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -380,7 +245,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: 'codepipeline:StartPipelineExecution'
-                Resource: !GetAtt CodePipeline.Arn
+                Resource: !Sub 'arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${AWS::StackName}-Pipeline'
 
   CodeDeployRole:
     Type: 'AWS::IAM::Role'
@@ -408,31 +273,90 @@ Resources:
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess'
 
-  # --- EventBridge Rule to trigger CodePipeline ---
-  ECRPushEventRule:
-    Type: 'AWS::Events::Rule'
+  # --- CloudWatch Log Group ---
+  LogGroup:
+    Type: 'AWS::Logs::LogGroup'
     Properties:
-      Description: "Rule to trigger CodePipeline on new ECR image push"
-      EventPattern:
-        source:
-          - "aws.ecr"
-        detail-type:
-          - "ECR Image Action"
-        detail:
-          repository-name:
-            - "ecs-cicd-repo"
-          image-tag:
-            - "latest"
-          action-type:
-            - "PUSH"
-      Targets:
-        - Arn: !GetAtt CodePipeline.Arn
-          Id: "CodePipelineTarget"
-          RoleArn: !GetAtt EventBridgeRole.Arn
+      LogGroupName: !Sub '/ecs/fargate/${AWS::StackName}-App'
 
 Outputs:
+  VPCId:
+    Description: The ID of the VPC
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VPCId'
+  PrivateSubnet1:
+    Description: The ID of Private Subnet 1
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub '${AWS::StackName}-PrivateSubnet1'
+  PrivateSubnet2:
+    Description: The ID of Private Subnet 2
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub '${AWS::StackName}-PrivateSubnet2'
+  FargateSecurityGroup:
+    Description: The ID of the Fargate Security Group
+    Value: !Ref FargateSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-FargateSecurityGroup'
+  ECRRepositoryName:
+    Description: The name of the ECR Repository
+    Value: !Ref ECRRepository
+    Export:
+      Name: !Sub '${AWS::StackName}-ECRRepositoryName'
+  ECSCluster:
+    Description: The name of the ECS Cluster
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub '${AWS::StackName}-ECSCluster'
   ALBEndpoint:
     Description: The DNS name of the Application Load Balancer
     Value: !GetAtt ALB.DNSName
     Export:
       Name: !Sub '${AWS::StackName}-ALBEndpoint'
+  TargetGroup:
+    Description: The ARN of the main Target Group
+    Value: !Ref TargetGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-TargetGroup'
+  BlueTargetGroup:
+    Description: The ARN of the Blue Target Group
+    Value: !Ref BlueTargetGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-BlueTargetGroup'
+  TestListener:
+    Description: The ARN of the Test Listener
+    Value: !Ref TestListener
+    Export:
+      Name: !Sub '${AWS::StackName}-TestListener'
+  Listener:
+    Description: The ARN of the main Listener
+    Value: !Ref Listener
+    Export:
+      Name: !Sub '${AWS::StackName}-Listener'
+  LogGroup:
+    Description: The ARN of the CloudWatch Log Group
+    Value: !GetAtt LogGroup.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LogGroup'
+  ECSTaskExecutionRoleArn:
+    Description: The ARN of the ECS Task Execution Role
+    Value: !GetAtt ECSTaskExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ECSTaskExecutionRoleArn'
+  EventBridgeRoleArn:
+    Description: The ARN of the EventBridge Role
+    Value: !GetAtt EventBridgeRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-EventBridgeRoleArn'
+  CodeDeployRoleArn:
+    Description: The ARN of the CodeDeploy Role
+    Value: !GetAtt CodeDeployRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-CodeDeployRoleArn'
+  CodePipelineRoleArn:
+    Description: The ARN of the CodePipeline Role
+    Value: !GetAtt CodePipelineRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-CodePipelineRoleArn'

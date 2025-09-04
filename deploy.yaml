@@ -1,3 +1,9 @@
-template-file-path: infrastructure.yaml
-parameters: {}
-tags: {}
+- template-file-path: base-infrastructure.yaml
+  stack-name: ecs-base-stack
+  parameters: {}
+  tags: {}
+- template-file-path: app-infrastructure.yaml
+  stack-name: ecs-app-stack
+  parameters:
+    StackName: ecs-base-stack
+  tags: {}
