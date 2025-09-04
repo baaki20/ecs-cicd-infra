@@ -359,7 +359,7 @@ Resources:
         - Name: ApplicationName
           Value: !Ref CodeDeployApplication
         - Name: DeploymentGroupName
-          Value: !GetAtt CodeDeployDeploymentGroup.DeploymentGroupName
+          Value: !Ref CodeDeployDeploymentGroup
       Statistic: Sum
 
   # --- IAM Roles for Pipeline and CodeDeploy ---
