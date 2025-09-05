@@ -40,25 +40,25 @@ Parameters:
     Default: 10.0.11.0/24
   ContainerPort:
     Type: Number
-    Default: 8080
+    Default: "8080"
   HealthCheckPath:
     Type: String
     Default: /
   DesiredCount:
     Type: Number
-    Default: 1
+    Default: "1"
   MinCount:
     Type: Number
-    Default: 1
+    Default: "1"
   MaxCount:
     Type: Number
-    Default: 4
+    Default: "4"
   TaskCpu:
     Type: Number
-    Default: 256
+    Default: "256"
   TaskMemory:
     Type: Number
-    Default: 512
+    Default: "512"
   EcrRepoName:
     Type: String
     Default: ecs-cicd-lab/app
@@ -67,10 +67,10 @@ Parameters:
     Default: !Sub ${ProjectName}-${Environment}-artifacts
   DeploymentTrafficShiftInterval:
     Type: Number
-    Default: 60
+    Default: "60"
   DeploymentTrafficShiftPercentage:
     Type: Number
-    Default: 10
+    Default: "10"
 
 # ------------------------------- MAPPINGS -----------------------------------
 Mappings: {}
