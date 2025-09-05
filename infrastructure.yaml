@@ -64,7 +64,7 @@ Parameters:
     Default: ecs-cicd-lab/app
   ArtifactBucketName:
     Type: String
-    Default: !Sub ${ProjectName}-${Environment}-artifacts
+    Default: ecs-cicd-lab-prod-artifacts
   DeploymentTrafficShiftInterval:
     Type: Number
     Default: "60"
