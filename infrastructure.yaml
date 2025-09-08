@@ -438,6 +438,7 @@ Resources:
       Cluster: !Ref EcsCluster
       DesiredCount: !Ref DesiredCount
       LaunchType: FARGATE
+      TaskDefinition: !Ref EcsTaskDefinition
       DeploymentController: { Type: CODE_DEPLOY }
       NetworkConfiguration:
         AwsvpcConfiguration:
