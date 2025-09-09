@@ -449,7 +449,7 @@ Resources:
     Properties:
       MaxCapacity: !Ref MaxCount
       MinCapacity: !Ref MinCount
-      ResourceId: !Sub service/${EcsCluster}/${EcsService.Name}
+      ResourceId: !Sub service/${EcsCluster}/${EcsService}
       RoleARN: !GetAtt ApplicationAutoScalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
@@ -519,7 +519,7 @@ Resources:
                 - !Ref HttpListener
             TestTrafficRoute:
               ListenerArns: []
-      ECSService:
+      ECSServices:
         ClusterName: !Ref EcsCluster
         ServiceName: !Ref EcsService
 
