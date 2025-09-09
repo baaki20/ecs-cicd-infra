@@ -61,6 +61,7 @@ Parameters:
     Default: "512"
   EcrRepoName:
     Type: String
+    Default: ecs-cicd-lab/app
     Description: "Name of an existing ECR repository (without URI)"
   ArtifactBucketName:
     Type: String
