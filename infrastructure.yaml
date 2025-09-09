@@ -520,9 +520,8 @@ Resources:
             TestTrafficRoute:
               ListenerArns: []
       ECSServices:
-        ClusterName: !Ref EcsCluster
+      - ClusterName: !Ref EcsCluster
         ServiceName: !Ref EcsService
-
   ###################################
   # S3 artifact bucket
   ###################################
