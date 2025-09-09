@@ -521,7 +521,7 @@ Resources:
               ListenerArns: []
       ECSServices:
       - ClusterName: !Ref EcsCluster
-        ServiceName: !Ref EcsService
+        ServiceName: !GetAtt EcsService.Name
   ###################################
   # S3 artifact bucket
   ###################################
