@@ -550,7 +550,7 @@ Resources:
         PrivilegedMode: true
         EnvironmentVariables:
           - Name: ECR_REPO
-            Value: !Ref EcrRepository
+            Value: !Ref EcrRepoName
       Source:
         Type: GITHUB
         Location: https://github.com/baaki20/ecs-cicd-app.git
@@ -670,7 +670,7 @@ Outputs:
 
   EcrRepositoryUri:
     Description: ECR repository URI
-    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository.EcrRepoName}
+    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepoName}
 
   ClusterName:
     Description: ECS Cluster name
