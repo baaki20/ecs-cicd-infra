@@ -61,7 +61,7 @@ Parameters:
     Default: "512"
   EcrRepoName:
     Type: String
-    Default: ecs-cicd-lab/app
+    Description: "Name of an existing ECR repository (without URI)"
   ArtifactBucketName:
     Type: String
     Default: ecs-cicd-lab-prod-artifacts
@@ -306,19 +306,6 @@ Resources:
     Properties:
       LogGroupName: !Sub /ecs/${ProjectName}/${Environment}
       RetentionInDays: 14
-
-  ###################################
-  # ECR
-  ###################################
-  EcrRepository:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: !Ref EcrRepoName
-      ImageScanningConfiguration:
-        ScanOnPush: true
-      ImageTagMutability: MUTABLE
-      EncryptionConfiguration:
-        EncryptionType: AES256
 
   ###################################
   # IAM Roles
@@ -613,7 +600,7 @@ Resources:
                 Version: '1'
                 Provider: ECR
               Configuration:
-                RepositoryName: !Ref EcrRepository
+                RepositoryName: !Ref EcrRepoName
                 ImageTag: latest
               OutputArtifacts:
                 - Name: SourceOutput
@@ -668,7 +655,7 @@ Resources:
           result:
             - SUCCESS
           repository-name:
-            - !Ref EcrRepository
+            - !Ref EcrRepoName
       Targets:
         - Arn: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}
           Id: CodePipelineTarget
@@ -682,7 +669,7 @@ Outputs:
 
   EcrRepositoryUri:
     Description: ECR repository URI
-    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository.RepositoryName}
+    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository.EcrRepoName}
 
   ClusterName:
     Description: ECS Cluster name
