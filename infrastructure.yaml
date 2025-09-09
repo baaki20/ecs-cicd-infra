@@ -316,7 +316,7 @@ Resources:
       RepositoryName: !Ref EcrRepoName
       ImageScanningConfiguration:
         ScanOnPush: true
-      ImageTagMutability: IMMUTABLE
+      ImageTagMutability: MUTABLE
       EncryptionConfiguration:
         EncryptionType: AES256
 
@@ -564,7 +564,7 @@ Resources:
             Value: !Ref EcrRepository
       Source:
         Type: GITHUB
-        Location: https://github.com/your-org/your-app-repo.git
+        Location: https://github.com/baaki20/ecs-cicd-app.git
         BuildSpec: |
           version: 0.2
           phases:
