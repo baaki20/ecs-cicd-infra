@@ -21,7 +21,7 @@ Parameters:
     Default: ecs-cicd-lab
   Environment:
     Type: String
-    Default: prod
+    Default: dev
     AllowedValues: [dev, staging, prod]
   VpcCidr:
     Type: String
