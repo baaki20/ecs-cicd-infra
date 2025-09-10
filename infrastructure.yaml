@@ -65,7 +65,7 @@ Parameters:
     Description: "Name of an existing ECR repository (without URI)"
   ArtifactBucketName:
     Type: String
-    Default: ecs-cicd-lab-prod-artifacts
+    Default: ecs-cicd-lab-dev-artifacts
   DeploymentTrafficShiftInterval:
     Type: Number
     Default: "60"
@@ -401,7 +401,7 @@ Resources:
                     - codedeploy:GetDeployment
                     - codedeploy:GetDeploymentConfig
                     - codedeploy:RegisterApplicationRevision
-                  Resource: !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${CodeDeployApplication.Name}'
+                  Resource: '*'
                 - Effect: Allow
                   Action:
                     - ecs:DescribeServices
