@@ -258,6 +258,7 @@ Resources:
   ###################################
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: VpcIgwAttachment
     Properties:
       Name: !Sub ${ProjectName}-${Environment}-alb
       Scheme: internet-facing
@@ -630,7 +631,7 @@ Resources:
                 TaskDefinitionTemplatePath: taskdef.json
                 AppSpecTemplateArtifact: SourceOutput
                 AppSpecTemplatePath: appspec.yaml
-                
+
   ###################################
   # EventBridge rule to trigger pipeline on ECR image push
   ###################################
