@@ -299,6 +299,16 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroupBlue
 
+  TestListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 9001
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupGreen
+
   ###################################
   # Logging
   ###################################
@@ -519,7 +529,7 @@ Resources:
                 - !Ref HttpListener
             TestTrafficRoute:
               ListenerArns:
-                - !Ref HttpListener
+                - !Ref TestListener
       ECSServices:
       - ClusterName: !Ref EcsCluster
         ServiceName: !GetAtt EcsService.Name
