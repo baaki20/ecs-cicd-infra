@@ -517,8 +517,6 @@ Resources:
         DeploymentReadyOption:
           ActionOnTimeout: CONTINUE_DEPLOYMENT
           WaitTimeInMinutes: 0
-        GreenFleetProvisioningOption:
-          Action: DISCOVER_EXISTING
       LoadBalancerInfo:
         TargetGroupPairInfoList:
           - TargetGroups:
