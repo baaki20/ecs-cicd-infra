@@ -169,16 +169,27 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet2
 
-  NatEIP:
+  NatEIP1:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
 
-  NatGateway:
+  NatGateway1:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !GetAtt NatEIP.AllocationId
+      AllocationId: !GetAtt NatEIP1.AllocationId
       SubnetId: !Ref PublicSubnet1
+
+  NatEIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEIP2.AllocationId
+      SubnetId: !Ref PublicSubnet2
 
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -207,14 +218,14 @@ Resources:
     Properties:
       RouteTableId: !Ref PrivateRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway
+      NatGatewayId: !Ref NatGateway1
 
   PrivateRoute2Default:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateRouteTable2
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway
+      NatGatewayId: !Ref NatGateway2
 
   ###################################
   # Security
@@ -376,28 +387,51 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - codepipeline:*
-                  - codebuild:*
-                  - codedeploy:*
-                  - ecs:*
+                  - codepipeline:GetJobDetails
+                  - codepipeline:AcknowledgeJob
+                  - codepipeline:PutJobFailureResult
+                  - codepipeline:PutJobSuccessResult
+                Resource: !Sub 'arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}'
+              - Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:DescribeTaskDefinition
+                  - ecs:UpdateService
+                  - ecs:ListTasks
+                  - ecs:DescribeTasks
+                  - ecs:RegisterTaskDefinition
+                Resource: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${EcsCluster}/${EcsService.Name}'
+              - Effect: Allow
+                Action:
                   - iam:PassRole
-                  - s3:*
+                Resource: 
+                  - !GetAtt EcsTaskExecutionRole.Arn
+                  - !GetAtt EcsTaskRole.Arn
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                Resource: 
+                  - !GetAtt ArtifactBucket.Arn
+                  - !Sub '${ArtifactBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - codedeploy:CreateDeployment
+                  - codedeploy:GetDeployment
+                  - codedeploy:GetDeploymentConfig
+                  - codedeploy:RegisterApplicationRevision
                 Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
 
-  CodeBuildServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codebuild.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+  # The CodeBuildServiceRole and CodeBuildProject are not needed as the build process
+  # is handled by GitHub Actions using OIDC. These resources have been removed.
 
   ###################################
   # ECS Cluster, TaskDefinition, Service (CODE_DEPLOY)
@@ -465,7 +499,6 @@ Resources:
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
 
-
   ApplicationAutoScalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -532,9 +565,10 @@ Resources:
       ECSServices:
       - ClusterName: !Ref EcsCluster
         ServiceName: !GetAtt EcsService.Name
+  
   ###################################
   # S3 artifact bucket
-  ###################################
+  ##################################
   ArtifactBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -542,39 +576,10 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
-  ###################################
-  # CodeBuild Project for building + pushing image using OIDC
-  ###################################
-  CodeBuildProject:
-    Type: AWS::CodeBuild::Project
+  EcrRepository:
+    Type: AWS::ECR::Repository
     Properties:
-      Name: !Sub ${ProjectName}-${Environment}-codebuild
-      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
-      Artifacts:
-        Type: NO_ARTIFACTS
-      Environment:
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/standard:6.0
-        Type: LINUX_CONTAINER
-        PrivilegedMode: true
-        EnvironmentVariables:
-          - Name: ECR_REPO
-            Value: !Ref EcrRepoName
-      Source:
-        Type: GITHUB
-        Location: https://github.com/baaki20/ecs-cicd-app.git
-        BuildSpec: |
-          version: 0.2
-          phases:
-            pre_build:
-              commands:
-                - echo "Logging in to Amazon ECR using OIDC"
-                - aws --version
-            build:
-              commands:
-                - echo "Build & push image (use OIDC in your GitHub Actions instead)"
-          artifacts:
-            files: []
+      RepositoryName: !Ref EcrRepoName
 
   ###################################
   # CodePipeline (ECR image as source)
