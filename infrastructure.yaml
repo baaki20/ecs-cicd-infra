@@ -401,7 +401,7 @@ Resources:
                     - codedeploy:GetDeployment
                     - codedeploy:GetDeploymentConfig
                     - codedeploy:RegisterApplicationRevision
-                  Resource: '*'
+                  Resource: !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${CodeDeployApplication.Name}'
                 - Effect: Allow
                   Action:
                     - ecs:DescribeServices
