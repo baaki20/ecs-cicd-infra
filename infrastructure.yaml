@@ -518,7 +518,8 @@ Resources:
               ListenerArns:
                 - !Ref HttpListener
             TestTrafficRoute:
-              ListenerArns: []
+              ListenerArns:
+                - !Ref HttpListener
       ECSServices:
       - ClusterName: !Ref EcsCluster
         ServiceName: !GetAtt EcsService.Name
