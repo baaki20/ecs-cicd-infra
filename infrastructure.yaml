@@ -423,6 +423,7 @@ Resources:
                     - ecr:BatchCheckLayerAvailability
                     - ecr:GetDownloadUrlForLayer
                     - ecr:BatchGetImage
+                    - ecr:DescribeImages
                   Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
                 - Effect: Allow
                   Action:
