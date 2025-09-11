@@ -27,12 +27,10 @@ Parameters:
     Description: Private Subnet 2 CIDR
   AllowedGithubRepo:
     Type: String
-    Default: XzibiT-Collins/ecs-fargate-application
-    Description: Allowed Github Repo
+    Default: baaki20/ecs-cicd-app
   AllowedGithubBranch:
     Type: String
     Default: refs/heads/main
-    Description: Allowed Github Branch
   AppPort:
     Type: Number
     Default: 80
@@ -440,7 +438,7 @@ Resources:
       Cluster: !Ref ECSCluster
       ServiceName: !Sub ${EnvironmentName}-service
       TaskDefinition: !Ref ECSTaskDefinition
-      DesiredCount: 1   # Safe until image exists
+      DesiredCount: 1
       LaunchType: FARGATE
       DeploymentController:
         Type: CODE_DEPLOY
@@ -473,7 +471,7 @@ Resources:
               Service: codedeploy.amazonaws.com
             Action: sts:AssumeRole
       Path: "/"
-      Policies: # ✅ replaced ManagedPolicyArns with inline permissions
+      Policies:
         - PolicyName: CodeDeployECSAccess
           PolicyDocument:
             Version: 2012-10-17
