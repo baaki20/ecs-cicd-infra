@@ -590,7 +590,7 @@ Resources:
     Type: AWS::CodePipeline::Pipeline
     Properties:
       Name: !Sub ${ProjectName}-${Environment}-pipeline
-      RoleArn: !GetAtt PipelineRoleForPipeline.Arn
+      RoleArn: !GetAtt PipelineRole.Arn
       ArtifactStore:
         Type: S3
         Location: !Ref ArtifactBucket
