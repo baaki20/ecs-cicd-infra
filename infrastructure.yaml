@@ -655,8 +655,8 @@ Resources:
     Properties:
       RepositoryName: !Ref EcrRepoName
 
-###################################
-  # CodePipeline (ECR image as source) - FIXED
+  ###################################
+  # CodePipeline (ECR image as source)
   ###################################
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -711,13 +711,10 @@ Resources:
                 TaskDefinitionTemplatePath: taskdef.json
                 AppSpecTemplateArtifact: BuildOutput
                 AppSpecTemplatePath: appspec.yaml
-                Image1ArtifactName: SourceOutput
-                Image1ImageURI: imageDetail.json
               InputArtifacts:
                 - Name: BuildOutput
-                - Name: SourceOutput
 
-  # CodeBuild packager (creates taskdef.json + appspec.yaml) - UPDATED
+  # CodeBuild packager (creates taskdef.json + appspec.yaml)
   CodeBuildPackager:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -754,6 +751,15 @@ Resources:
           version: 0.2
 
           phases:
+            install:
+              runtime-versions:
+                python: 3.9
+            pre_build:
+              commands:
+                - echo "Reading image URI from imageDetail.json"
+                - cat imageDetail.json
+                - IMAGE_URI=$(python -c "import json; print(json.load(open('imageDetail.json'))['ImageURI'])")
+                - echo "Image URI is $IMAGE_URI"
             build:
               commands:
                 - echo "Generating taskdef.json"
@@ -770,7 +776,7 @@ Resources:
                     "containerDefinitions": [
                       {
                         "name": "app",
-                        "image": "IMAGE1_URI",
+                        "image": "$IMAGE_URI",
                         "essential": true,
                         "portMappings": [
                           {
