@@ -702,8 +702,13 @@ Resources:
         Type: CODEPIPELINE
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/standard:7.0
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
         Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: ECR_REPO
+            Value: !Ref EcrRepoName
+          - Name: CONTAINER_PORT
+            Value: !Ref ContainerPort
       Source:
         Type: CODEPIPELINE
         # Inline BuildSpec used because ECR source has no buildspec file
@@ -711,8 +716,9 @@ Resources:
           version: 0.2
           env:
             variables:
-              ECR_REPO: !Ref EcrRepoName
-              CONTAINER_PORT: !Ref ContainerPort
+              ECR_REPO: "$ECR_REPO"
+              CONTAINER_PORT: "$CONTAINER_PORT"
+
           phases:
             pre_build:
               commands:
@@ -738,7 +744,7 @@ Resources:
                         "name": "app",
                         "image": "${IMAGE_URI}",
                         "essential": true,
-                        "portMappings": [ { "containerPort": ${ContainerPort} } ],
+                        "portMappings": [ { "containerPort": ${CONTAINER_PORT} } ],
                         "logConfiguration": {
                           "logDriver": "awslogs",
                           "options": {
@@ -762,7 +768,7 @@ Resources:
                           TaskDefinition: taskdef.json
                           LoadBalancerInfo:
                             ContainerName: app
-                            ContainerPort: ${ContainerPort}
+                            ContainerPort: ${CONTAINER_PORT}
                   EOF
           artifacts:
             files:
