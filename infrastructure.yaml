@@ -728,8 +728,8 @@ Resources:
                     "family": "${ProjectName}-${Environment}-task",
                     "networkMode": "awsvpc",
                     "requiresCompatibilities": ["FARGATE"],
-                    "cpu": "${TaskCpu}",
-                    "memory": "${TaskMemory}",
+                    "cpu": "256",
+                    "memory": "512",
                     "containerDefinitions": [
                       {
                         "name": "app",
