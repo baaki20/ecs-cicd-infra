@@ -440,9 +440,65 @@ Resources:
                     - codedeploy:RegisterApplicationRevision
                   Resource: '*'
                     
-  # The CodeBuildServiceRole and CodeBuildProject are not needed as the build process
-  # is handled by GitHub Actions using OIDC. These resources have been removed.
+  ###################################
+  # CodeBuild 
+  ###################################
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: CodeBuildInlinePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub '${ArtifactBucket.Arn}/*'
+                  - !GetAtt ArtifactBucket.Arn
+              - Effect: Allow
+                Action:
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:BatchCheckLayerAvailability
+                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
 
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-package
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: ECR_REPO
+            Value: !Ref EcrRepoName
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 20
+
+  
   ###################################
   # ECS Cluster, TaskDefinition, Service (CODE_DEPLOY)
   ###################################
@@ -616,6 +672,20 @@ Resources:
                 ImageTag: latest
               OutputArtifacts:
                 - Name: SourceOutput
+        - Name: Build
+          Actions:
+            - Name: PackageTaskDef
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: '1'
+                Provider: CodeBuild
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
         - Name: Deploy
           Actions:
             - Name: CodeDeployAction
@@ -625,13 +695,13 @@ Resources:
                 Provider: CodeDeployToECS
                 Version: '1'
               InputArtifacts:
-                - Name: SourceOutput
+                - Name: BuildOutput       # <-- changed from SourceOutput
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup
-                TaskDefinitionTemplateArtifact: SourceOutput
+                TaskDefinitionTemplateArtifact: BuildOutput
                 TaskDefinitionTemplatePath: taskdef.json
-                AppSpecTemplateArtifact: SourceOutput
+                AppSpecTemplateArtifact: BuildOutput
                 AppSpecTemplatePath: appspec.yaml
 
   ###################################
