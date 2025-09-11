@@ -55,10 +55,10 @@ Parameters:
     Default: "4"
   TaskCpu:
     Type: Number
-    Default: "256"
+    Default: 256
   TaskMemory:
     Type: Number
-    Default: "512"
+    Default: 512
   EcrRepoName:
     Type: String
     Default: ecs-cicd-lab/app
