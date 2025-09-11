@@ -4,7 +4,7 @@ Description: Template to setup network for ECR deployment
 Parameters:
   EnvironmentName:
     Type: String
-    Default: dev
+    Default: baaki-dev
   VpcCidr:
     Type: String
     Default: 10.0.0.0/16
