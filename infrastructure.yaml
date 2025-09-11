@@ -712,9 +712,22 @@ Resources:
             Value: !Ref EcrRepoName
           - Name: CONTAINER_PORT
             Value: !Ref ContainerPort
+          - Name: TASK_CPU
+            Value: !Ref TaskCpu
+          - Name: TASK_MEMORY
+            Value: !Ref TaskMemory
+          - Name: PROJECT_NAME
+            Value: !Ref ProjectName
+          - Name: ENVIRONMENT
+            Value: !Ref Environment
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+          - Name: TASK_EXECUTION_ROLE_ARN
+            Value: !GetAtt EcsTaskExecutionRole.Arn
+          - Name: TASK_ROLE_ARN
+            Value: !GetAtt EcsTaskRole.Arn
       Source:
         Type: CODEPIPELINE
-        # Inline BuildSpec used because ECR source has no buildspec file
         BuildSpec: |
           version: 0.2
 
@@ -725,22 +738,24 @@ Resources:
                 - |
                   cat > taskdef.json <<EOF
                   {
-                    "family": "${ProjectName}-${Environment}-task",
+                    "family": "$PROJECT_NAME-$ENVIRONMENT-task",
                     "networkMode": "awsvpc",
                     "requiresCompatibilities": ["FARGATE"],
-                    "cpu": "256",
-                    "memory": "512",
+                    "cpu": "$TASK_CPU",
+                    "memory": "$TASK_MEMORY",
+                    "executionRoleArn": "$TASK_EXECUTION_ROLE_ARN",
+                    "taskRoleArn": "$TASK_ROLE_ARN",
                     "containerDefinitions": [
                       {
                         "name": "app",
-                        "image": "${IMAGE_URI}",
+                        "image": "<IMAGE1_URI>",
                         "essential": true,
-                        "portMappings": [ { "containerPort": ${CONTAINER_PORT} } ],
+                        "portMappings": [ { "containerPort": $CONTAINER_PORT } ],
                         "logConfiguration": {
                           "logDriver": "awslogs",
                           "options": {
-                            "awslogs-group": "/ecs/${ProjectName}/${Environment}",
-                            "awslogs-region": "${REGION}",
+                            "awslogs-group": "/ecs/$PROJECT_NAME/$ENVIRONMENT",
+                            "awslogs-region": "$AWS_DEFAULT_REGION",
                             "awslogs-stream-prefix": "ecs"
                           }
                         }
@@ -756,10 +771,10 @@ Resources:
                     - TargetService:
                         Type: AWS::ECS::Service
                         Properties:
-                          TaskDefinition: taskdef.json
+                          TaskDefinition: <TASK_DEFINITION>
                           LoadBalancerInfo:
                             ContainerName: app
-                            ContainerPort: ${CONTAINER_PORT}
+                            ContainerPort: $CONTAINER_PORT
                   EOF
           artifacts:
             files:
