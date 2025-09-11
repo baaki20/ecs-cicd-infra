@@ -373,100 +373,100 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
 
-PipelineRole:
-  Type: AWS::IAM::Role
-  Properties:
-    AssumeRolePolicyDocument:
-      Version: '2012-10-17'
-      Statement:
-        - Effect: Allow
-          Principal:
-            Service: codepipeline.amazonaws.com
-          Action: sts:AssumeRole
-    Policies:
-      - PolicyName: CodePipelineInlinePolicy
-        PolicyDocument:
+  PipelineRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
           Version: '2012-10-17'
           Statement:
-            # S3 permissions for artifacts
             - Effect: Allow
-              Action:
-                - s3:GetObject
-                - s3:GetObjectVersion
-                - s3:GetBucketVersioning
-                - s3:PutObject
-                - s3:ListBucket
-              Resource:
-                - !GetAtt ArtifactBucket.Arn
-                - !Sub '${ArtifactBucket.Arn}/*'
-            
-            # CodeBuild permissions
-            - Effect: Allow
-              Action:
-                - codebuild:StartBuild
-                - codebuild:BatchGetBuilds
-              Resource: !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${ProjectName}-${Environment}-packager
-            
-            # CodeDeploy permissions
-            - Effect: Allow
-              Action:
-                - codedeploy:CreateDeployment
-                - codedeploy:GetDeployment
-                - codedeploy:GetDeploymentConfig
-                - codedeploy:RegisterApplicationRevision
-                - codedeploy:GetApplication
-                - codedeploy:ListApplications
-                - codedeploy:ListDeploymentGroups
-              Resource: '*'
-            
-            # ECS permissions
-            - Effect: Allow
-              Action:
-                - ecs:DescribeServices
-                - ecs:DescribeTaskDefinition
-                - ecs:UpdateService
-                - ecs:ListTasks
-                - ecs:DescribeTasks
-                - ecs:RegisterTaskDefinition
-                - ecs:DescribeClusters
-                - ecs:ListTaskDefinitions
-              Resource: '*'
-            
-            # IAM PassRole permissions
-            - Effect: Allow
-              Action:
-                - iam:PassRole
-              Resource:
-                - !GetAtt EcsTaskExecutionRole.Arn
-                - !GetAtt EcsTaskRole.Arn
-              Condition:
-                StringEquals:
-                  iam:PassedToService: ecs-tasks.amazonaws.com
-            
-            # ECR permissions
-            - Effect: Allow
-              Action:
-                - ecr:GetAuthorizationToken
-              Resource: '*'
-            
-            - Effect: Allow
-              Action:
-                - ecr:BatchCheckLayerAvailability
-                - ecr:GetDownloadUrlForLayer
-                - ecr:BatchGetImage
-                - ecr:DescribeImages
-                - ecr:DescribeRepositories
-              Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
-            
-            # CodePipeline job management
-            - Effect: Allow
-              Action:
-                - codepipeline:GetJobDetails
-                - codepipeline:AcknowledgeJob
-                - codepipeline:PutJobFailureResult
-                - codepipeline:PutJobSuccessResult
-              Resource: '*'
-                    
+              Principal:
+                Service: codepipeline.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: CodePipelineInlinePolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                # S3 permissions for artifacts
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                    - s3:GetObjectVersion
+                    - s3:GetBucketVersioning
+                    - s3:PutObject
+                    - s3:ListBucket
+                  Resource:
+                    - !GetAtt ArtifactBucket.Arn
+                    - !Sub '${ArtifactBucket.Arn}/*'
+                
+                # CodeBuild permissions
+                - Effect: Allow
+                  Action:
+                    - codebuild:StartBuild
+                    - codebuild:BatchGetBuilds
+                  Resource: !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${ProjectName}-${Environment}-packager
+                
+                # CodeDeploy permissions
+                - Effect: Allow
+                  Action:
+                    - codedeploy:CreateDeployment
+                    - codedeploy:GetDeployment
+                    - codedeploy:GetDeploymentConfig
+                    - codedeploy:RegisterApplicationRevision
+                    - codedeploy:GetApplication
+                    - codedeploy:ListApplications
+                    - codedeploy:ListDeploymentGroups
+                  Resource: '*'
+                
+                # ECS permissions
+                - Effect: Allow
+                  Action:
+                    - ecs:DescribeServices
+                    - ecs:DescribeTaskDefinition
+                    - ecs:UpdateService
+                    - ecs:ListTasks
+                    - ecs:DescribeTasks
+                    - ecs:RegisterTaskDefinition
+                    - ecs:DescribeClusters
+                    - ecs:ListTaskDefinitions
+                  Resource: '*'
+                
+                # IAM PassRole permissions
+                - Effect: Allow
+                  Action:
+                    - iam:PassRole
+                  Resource:
+                    - !GetAtt EcsTaskExecutionRole.Arn
+                    - !GetAtt EcsTaskRole.Arn
+                  Condition:
+                    StringEquals:
+                      iam:PassedToService: ecs-tasks.amazonaws.com
+                
+                # ECR permissions
+                - Effect: Allow
+                  Action:
+                    - ecr:GetAuthorizationToken
+                  Resource: '*'
+                
+                - Effect: Allow
+                  Action:
+                    - ecr:BatchCheckLayerAvailability
+                    - ecr:GetDownloadUrlForLayer
+                    - ecr:BatchGetImage
+                    - ecr:DescribeImages
+                    - ecr:DescribeRepositories
+                  Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
+                
+                # CodePipeline job management
+                - Effect: Allow
+                  Action:
+                    - codepipeline:GetJobDetails
+                    - codepipeline:AcknowledgeJob
+                    - codepipeline:PutJobFailureResult
+                    - codepipeline:PutJobSuccessResult
+                  Resource: '*'
+                   
   ###################################
   # CodeBuild 
   ###################################
