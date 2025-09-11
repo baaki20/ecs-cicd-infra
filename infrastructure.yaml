@@ -401,12 +401,6 @@ Resources:
                     - codedeploy:GetDeployment
                     - codedeploy:GetDeploymentConfig
                     - codedeploy:RegisterApplicationRevision
-                    - codedeploy:GetApplication
-                    - codedeploy:GetDeploymentGroup
-                    - codedeploy:ListDeploymentGroups
-                    - codedeploy:ListDeployments
-                    - codedeploy:GetApplicationRevision
-                    - codedeploy:ListApplicationRevisions
                   Resource: '*'
                 - Effect: Allow
                   Action:
@@ -416,12 +410,7 @@ Resources:
                     - ecs:ListTasks
                     - ecs:DescribeTasks
                     - ecs:RegisterTaskDefinition
-                    - ecs:DescribeClusters
-                    - ecs:ListServices
-                  Resource:
-                    - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${EcsCluster}/${EcsService.Name}'
-                    - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${EcsTaskDefinition.Family}:*'
-                    - !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}'
+                  Resource: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${EcsCluster}/${EcsService.Name}'
                 - Effect: Allow
                   Action:
                     - iam:PassRole
@@ -442,8 +431,15 @@ Resources:
                     - codepipeline:AcknowledgeJob
                     - codepipeline:PutJobFailureResult
                     - codepipeline:PutJobSuccessResult
+                    - codedeploy:CreateDeployment
+                    - codedeploy:GetDeployment
+                    - codedeploy:GetDeploymentConfig
+                    - codedeploy:GetApplication
+                    - codedeploy:ListApplications
+                    - codedeploy:ListDeploymentGroups
+                    - codedeploy:RegisterApplicationRevision
                   Resource: '*'
-
+                    
   # The CodeBuildServiceRole and CodeBuildProject are not needed as the build process
   # is handled by GitHub Actions using OIDC. These resources have been removed.
 
