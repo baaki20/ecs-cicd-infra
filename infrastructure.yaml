@@ -655,8 +655,8 @@ Resources:
     Properties:
       RepositoryName: !Ref EcrRepoName
 
-  ###################################
-  # CodePipeline (ECR image as source)
+###################################
+  # CodePipeline (ECR image as source) - FIXED
   ###################################
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -711,10 +711,13 @@ Resources:
                 TaskDefinitionTemplatePath: taskdef.json
                 AppSpecTemplateArtifact: BuildOutput
                 AppSpecTemplatePath: appspec.yaml
+                Image1ArtifactName: SourceOutput
+                Image1ImageURI: imageDetail.json
               InputArtifacts:
                 - Name: BuildOutput
+                - Name: SourceOutput
 
-  # CodeBuild packager (creates taskdef.json + appspec.yaml)
+  # CodeBuild packager (creates taskdef.json + appspec.yaml) - UPDATED
   CodeBuildPackager:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -769,7 +772,12 @@ Resources:
                         "name": "app",
                         "image": "IMAGE1_URI",
                         "essential": true,
-                        "portMappings": [ { "containerPort": $CONTAINER_PORT } ],
+                        "portMappings": [
+                          {
+                            "containerPort": $CONTAINER_PORT,
+                            "protocol": "tcp"
+                          }
+                        ],
                         "logConfiguration": {
                           "logDriver": "awslogs",
                           "options": {
@@ -795,6 +803,10 @@ Resources:
                             ContainerName: app
                             ContainerPort: $CONTAINER_PORT
                   EOF
+                - echo "Contents of taskdef.json:"
+                - cat taskdef.json
+                - echo "Contents of appspec.yaml:"
+                - cat appspec.yaml
           artifacts:
             files:
               - taskdef.json
