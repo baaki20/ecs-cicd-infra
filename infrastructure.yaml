@@ -399,7 +399,7 @@ Resources:
                   Action:
                     - codebuild:StartBuild
                     - codebuild:BatchGetBuilds
-                  Resource: !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/ecs-cicd-lab-dev-*
+                  Resource: !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/ecs-cicd-lab-dev-package
                 - Effect: Allow
                   Action:
                     - codedeploy:CreateDeployment
