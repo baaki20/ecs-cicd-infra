@@ -751,15 +751,6 @@ Resources:
           version: 0.2
 
           phases:
-            install:
-              runtime-versions:
-                python: 3.9
-            pre_build:
-              commands:
-                - echo "Reading image URI from imageDetail.json"
-                - cat imageDetail.json
-                - IMAGE_URI=$(python -c "import json; print(json.load(open('imageDetail.json'))['ImageURI'])")
-                - echo "Image URI is $IMAGE_URI"
             build:
               commands:
                 - echo "Generating taskdef.json"
@@ -776,14 +767,9 @@ Resources:
                     "containerDefinitions": [
                       {
                         "name": "app",
-                        "image": "$IMAGE_URI",
+                        "image": "IMAGE1_URI",
                         "essential": true,
-                        "portMappings": [
-                          {
-                            "containerPort": $CONTAINER_PORT,
-                            "protocol": "tcp"
-                          }
-                        ],
+                        "portMappings": [ { "containerPort": $CONTAINER_PORT } ],
                         "logConfiguration": {
                           "logDriver": "awslogs",
                           "options": {
@@ -809,10 +795,6 @@ Resources:
                             ContainerName: app
                             ContainerPort: $CONTAINER_PORT
                   EOF
-                - echo "Contents of taskdef.json:"
-                - cat taskdef.json
-                - echo "Contents of appspec.yaml:"
-                - cat appspec.yaml
           artifacts:
             files:
               - taskdef.json
