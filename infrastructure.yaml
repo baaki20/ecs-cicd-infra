@@ -714,10 +714,6 @@ Resources:
         # Inline BuildSpec used because ECR source has no buildspec file
         BuildSpec: |
           version: 0.2
-          env:
-            variables:
-              ECR_REPO: "$ECR_REPO"
-              CONTAINER_PORT: "$CONTAINER_PORT"
 
           phases:
             pre_build:
@@ -728,6 +724,7 @@ Resources:
                 - echo "Account: $ACCOUNT_ID  Region: $REGION"
                 - IMAGE_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_REPO}:latest"
                 - echo "Using image: $IMAGE_URI"
+
             build:
               commands:
                 - echo "Generating taskdef.json"
