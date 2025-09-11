@@ -54,11 +54,15 @@ Parameters:
     Type: Number
     Default: "4"
   TaskCpu:
-    Type: Number
-    Default: 256
+    Type: String
+    Description: Fargate task CPU (must be one of the allowed Fargate values)
+    Default: "256"
+    AllowedValues: ["256","512","1024","2048","4096","8192"]
   TaskMemory:
-    Type: Number
-    Default: 512
+    Type: String
+    Description: Fargate task memory in MiB (must be compatible with CPU selection)
+    Default: "512"
+    # Note: AllowedValues for memory are numerous and depend on CPU; validate choice against AWS doc table.
   EcrRepoName:
     Type: String
     Default: ecs-cicd-lab/app
