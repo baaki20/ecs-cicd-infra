@@ -399,7 +399,7 @@ Resources:
                   Action:
                     - codebuild:StartBuild
                     - codebuild:BatchGetBuilds
-                  Resource: !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/ecs-cicd-lab-dev-package
+                  Resource: !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${ProjectName}-${Environment}-packager
                 - Effect: Allow
                   Action:
                     - codedeploy:CreateDeployment
@@ -484,25 +484,6 @@ Resources:
                   - ecr:BatchGetImage
                   - ecr:BatchCheckLayerAvailability
                 Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
-
-  CodeBuildProject:
-    Type: AWS::CodeBuild::Project
-    Properties:
-      Name: !Sub ${ProjectName}-${Environment}-package
-      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
-      Artifacts:
-        Type: CODEPIPELINE
-      Environment:
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/standard:7.0
-        Type: LINUX_CONTAINER
-        EnvironmentVariables:
-          - Name: ECR_REPO
-            Value: !Ref EcrRepoName
-      Source:
-        Type: CODEPIPELINE
-      TimeoutInMinutes: 20
-
   
   ###################################
   # ECS Cluster, TaskDefinition, Service (CODE_DEPLOY)
@@ -677,6 +658,7 @@ Resources:
                 ImageTag: latest
               OutputArtifacts:
                 - Name: SourceOutput
+
         - Name: Build
           Actions:
             - Name: PackageTaskDef
@@ -685,12 +667,13 @@ Resources:
                 Owner: AWS
                 Version: '1'
                 Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildPackager
               InputArtifacts:
                 - Name: SourceOutput
               OutputArtifacts:
                 - Name: BuildOutput
-              Configuration:
-                ProjectName: !Ref CodeBuildProject
+
         - Name: Deploy
           Actions:
             - Name: CodeDeployAction
@@ -699,8 +682,6 @@ Resources:
                 Owner: AWS
                 Provider: CodeDeployToECS
                 Version: '1'
-              InputArtifacts:
-                - Name: BuildOutput       # <-- changed from SourceOutput
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup
@@ -708,6 +689,85 @@ Resources:
                 TaskDefinitionTemplatePath: taskdef.json
                 AppSpecTemplateArtifact: BuildOutput
                 AppSpecTemplatePath: appspec.yaml
+              InputArtifacts:
+                - Name: BuildOutput
+
+  # CodeBuild packager (creates taskdef.json + appspec.yaml)
+  CodeBuildPackager:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-packager
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+      Source:
+        Type: CODEPIPELINE
+        # Inline BuildSpec used because ECR source has no buildspec file
+        BuildSpec: |
+          version: 0.2
+          env:
+            variables:
+              ECR_REPO: !Ref EcrRepoName
+              CONTAINER_PORT: !Ref ContainerPort
+          phases:
+            pre_build:
+              commands:
+                - echo "Resolve AWS account and region"
+                - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+                - REGION=${AWS_REGION:-$AWS_DEFAULT_REGION}
+                - echo "Account: $ACCOUNT_ID  Region: $REGION"
+                - IMAGE_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_REPO}:latest"
+                - echo "Using image: $IMAGE_URI"
+            build:
+              commands:
+                - echo "Generating taskdef.json"
+                - |
+                  cat > taskdef.json <<EOF
+                  {
+                    "family": "${ProjectName}-${Environment}-task",
+                    "networkMode": "awsvpc",
+                    "requiresCompatibilities": ["FARGATE"],
+                    "cpu": "${TaskCpu}",
+                    "memory": "${TaskMemory}",
+                    "containerDefinitions": [
+                      {
+                        "name": "app",
+                        "image": "${IMAGE_URI}",
+                        "essential": true,
+                        "portMappings": [ { "containerPort": ${ContainerPort} } ],
+                        "logConfiguration": {
+                          "logDriver": "awslogs",
+                          "options": {
+                            "awslogs-group": "/ecs/${ProjectName}/${Environment}",
+                            "awslogs-region": "${REGION}",
+                            "awslogs-stream-prefix": "ecs"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                  EOF
+                - echo "Generating appspec.yaml"
+                - |
+                  cat > appspec.yaml <<EOF
+                  version: 0.0
+                  Resources:
+                    - TargetService:
+                        Type: AWS::ECS::Service
+                        Properties:
+                          TaskDefinition: taskdef.json
+                          LoadBalancerInfo:
+                            ContainerName: app
+                            ContainerPort: ${ContainerPort}
+                  EOF
+          artifacts:
+            files:
+              - taskdef.json
+              - appspec.yaml
 
   ###################################
   # EventBridge rule to trigger pipeline on ECR image push
