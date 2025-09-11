@@ -4,8 +4,7 @@ Description: Template to setup network for ECR deployment
 Parameters:
   EnvironmentName:
     Type: String
-    Default: ecs-stack
-    Description: Environment name
+    Default: dev
   VpcCidr:
     Type: String
     Default: 10.0.0.0/16
@@ -503,7 +502,7 @@ Resources:
                 Resource:
                   - !Sub arn:aws:s3:::${ArtifactBucket}
                   - !Sub arn:aws:s3:::${ArtifactBucket}/*
-              - Effect: Allow # <--- Add this section
+              - Effect: Allow
                 Action:
                   - iam:PassRole
                 Resource: !GetAtt ECSTaskExecutionRole.Arn
