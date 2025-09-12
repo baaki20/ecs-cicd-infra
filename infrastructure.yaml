@@ -405,7 +405,7 @@ Resources:
                   Action:
                     - codebuild:StartBuild
                     - codebuild:BatchGetBuilds
-                  Resource: !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${ProjectName}-${Environment}-packager
+                  Resource: '*'
                 
                 # CodeDeploy permissions
                 - Effect: Allow
