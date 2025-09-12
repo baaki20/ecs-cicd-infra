@@ -765,6 +765,7 @@ Resources:
                     EOL
         
                   - echo "Exporting taskdef.json"
+                  - IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${EcrRepoName}:latest"
                   - |
                     cat > taskdef.json <<EOL
                     {
@@ -777,7 +778,7 @@ Resources:
                       "containerDefinitions": [
                         {
                           "name": "app",
-                          "image": "<IMAGE1_NAME>",
+                          "image": "$IMAGE_URI",
                           "portMappings": [
                             {
                               "containerPort": ${ContainerPort},
