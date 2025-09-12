@@ -765,7 +765,7 @@ Resources:
                     EOL
         
                   - echo "Exporting taskdef.json"
-                  - IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${EcrRepoName}:latest"
+                  - IMAGE_URI="${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepoName}:latest"
                   - |
                     cat > taskdef.json <<EOL
                     {
