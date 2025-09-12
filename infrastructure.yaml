@@ -760,7 +760,7 @@ Resources:
                           Properties:
                             TaskDefinition: arn:aws:ecs:eu-central-1:414392949441:task-definition/ecs-cicd-lab-dev-task:22
                             LoadBalancerInfo:
-                              ContainerName: ecs-stack-container
+                              ContainerName: dev-container
                               ContainerPort: 80
                     EOL
         
