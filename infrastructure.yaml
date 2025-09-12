@@ -62,7 +62,6 @@ Parameters:
     Type: Number
     Description: Fargate task memory in MiB (must be compatible with CPU selection)
     Default: "512"
-    # Note: AllowedValues for memory are numerous and depend on CPU; validate choice against AWS doc table.
   EcrRepoName:
     Type: String
     Default: ecs-cicd-lab/app
@@ -75,7 +74,18 @@ Parameters:
   DeploymentTrafficShiftPercentage:
     Type: Number
     Default: "10"
-
+  CodeStarConnectionArn:
+    Type: String
+    Description: The ARN of the CodeStar connection to your GitHub repository.
+  GitHubRepoOwner:
+    Type: String
+    Default: baaki20
+  GitHubRepoName:
+    Type: String
+    Default: ecs-cicd-app
+  GitHubBranch:
+    Type: String
+    Default: main
 # ------------------------------- MAPPINGS -----------------------------------
 Mappings: {}
 
@@ -333,8 +343,8 @@ Resources:
       LogGroupName: !Sub /ecs/${ProjectName}/${Environment}
       RetentionInDays: 14
 
-  ###################################
-  # IAM Roles
+ ###################################
+  # IAM Roles (Changes here)
   ###################################
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
@@ -359,6 +369,9 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
             Action: sts:AssumeRole
+      # Add policies for any other AWS services your container needs to access.
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess
 
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
@@ -374,103 +387,73 @@ Resources:
         - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
 
   PipelineRole:
-      Type: AWS::IAM::Role
-      Properties:
-        AssumeRolePolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service: codepipeline.amazonaws.com
-              Action: sts:AssumeRole
-        Policies:
-          - PolicyName: CodePipelineInlinePolicy
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                # S3 permissions for artifacts
-                - Effect: Allow
-                  Action:
-                    - s3:GetObject
-                    - s3:GetObjectVersion
-                    - s3:GetBucketVersioning
-                    - s3:PutObject
-                    - s3:ListBucket
-                  Resource:
-                    - !GetAtt ArtifactBucket.Arn
-                    - !Sub '${ArtifactBucket.Arn}/*'
-                
-                # CodeBuild permissions
-                - Effect: Allow
-                  Action:
-                    - codebuild:StartBuild
-                    - codebuild:BatchGetBuilds
-                  Resource: '*'
-                
-                # CodeDeploy permissions
-                - Effect: Allow
-                  Action:
-                    - codedeploy:CreateDeployment
-                    - codedeploy:GetDeployment
-                    - codedeploy:GetDeploymentConfig
-                    - codedeploy:RegisterApplicationRevision
-                    - codedeploy:GetApplication
-                    - codedeploy:GetApplicationRevision
-                    - codedeploy:ListApplications
-                    - codedeploy:ListDeploymentGroups
-                  Resource: '*'
-                
-                # ECS permissions
-                - Effect: Allow
-                  Action:
-                    - ecs:DescribeServices
-                    - ecs:DescribeTaskDefinition
-                    - ecs:UpdateService
-                    - ecs:ListTasks
-                    - ecs:DescribeTasks
-                    - ecs:RegisterTaskDefinition
-                    - ecs:DescribeClusters
-                    - ecs:ListTaskDefinitions
-                  Resource: '*'
-                
-                # IAM PassRole permissions
-                - Effect: Allow
-                  Action:
-                    - iam:PassRole
-                  Resource:
-                    - !GetAtt EcsTaskExecutionRole.Arn
-                    - !GetAtt EcsTaskRole.Arn
-                  Condition:
-                    StringEquals:
-                      iam:PassedToService: ecs-tasks.amazonaws.com
-                
-                # ECR permissions
-                - Effect: Allow
-                  Action:
-                    - ecr:GetAuthorizationToken
-                  Resource: '*'
-                
-                - Effect: Allow
-                  Action:
-                    - ecr:BatchCheckLayerAvailability
-                    - ecr:GetDownloadUrlForLayer
-                    - ecr:BatchGetImage
-                    - ecr:DescribeImages
-                    - ecr:DescribeRepositories
-                  Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
-                
-                # CodePipeline job management
-                - Effect: Allow
-                  Action:
-                    - codepipeline:GetJobDetails
-                    - codepipeline:AcknowledgeJob
-                    - codepipeline:PutJobFailureResult
-                    - codepipeline:PutJobSuccessResult
-                  Resource: '*'
-                   
-  ###################################
-  # CodeBuild 
-  ###################################
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodePipelineInlinePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt ArtifactBucket.Arn
+                  - !Sub '${ArtifactBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - codedeploy:CreateDeployment
+                  - codedeploy:GetDeployment
+                  - codedeploy:GetDeploymentConfig
+                  - codedeploy:RegisterApplicationRevision
+                  - codedeploy:GetApplication
+                  - codedeploy:GetApplicationRevision
+                  - codedeploy:ListApplications
+                  - codedeploy:ListDeploymentGroups
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt CodeBuildServiceRole.Arn
+                  - !GetAtt EcsTaskExecutionRole.Arn
+                  - !GetAtt EcsTaskRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService:
+                      - codebuild.amazonaws.com
+                      - ecs-tasks.amazonaws.com
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
+              - Effect: Allow
+                Action:
+                  - codestar-connections:UseConnection
+                Resource: !Ref CodeStarConnectionArn
+
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -489,17 +472,6 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - ecs:RegisterTaskDefinition
-                  - ecs:DescribeTaskDefinition
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - iam:PassRole
-                Resource:
-                  - !GetAtt EcsTaskExecutionRole.Arn
-                  - !GetAtt EcsTaskRole.Arn
-              - Effect: Allow
-                Action:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
@@ -508,17 +480,23 @@ Resources:
                 Action:
                   - s3:PutObject
                   - s3:GetObject
+                  - s3:GetObjectVersion
                   - s3:GetBucketLocation
                 Resource:
                   - !Sub '${ArtifactBucket.Arn}/*'
                   - !GetAtt ArtifactBucket.Arn
               - Effect: Allow
                 Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
                   - ecr:GetDownloadUrlForLayer
                   - ecr:BatchGetImage
-                  - ecr:BatchCheckLayerAvailability
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
                 Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepoName}'
-  
+                   
   ###################################
   # ECS Cluster, TaskDefinition, Service (CODE_DEPLOY)
   ###################################
@@ -668,7 +646,7 @@ Resources:
       RepositoryName: !Ref EcrRepoName
 
   ###################################
-  # CodePipeline (ECR image as source)
+  # CodePipeline (Simplified and Corrected)
   ###################################
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -681,129 +659,112 @@ Resources:
       Stages:
         - Name: Source
           Actions:
-            - Name: ECRSource
+            - Name: Source
               ActionTypeId:
                 Category: Source
                 Owner: AWS
+                Provider: CodeStarSourceConnection
                 Version: '1'
-                Provider: ECR
-              Configuration:
-                RepositoryName: !Ref EcrRepoName
-                ImageTag: latest
               OutputArtifacts:
                 - Name: SourceOutput
-
+              Configuration:
+                ConnectionArn: !Ref CodeStarConnectionArn
+                FullRepositoryId: !Sub '${GitHubRepoOwner}/${GitHubRepoName}'
+                BranchName: !Ref GitHubBranch
         - Name: Build
           Actions:
-            - Name: PackageTaskDef
+            - Name: Build
               ActionTypeId:
                 Category: Build
                 Owner: AWS
-                Version: '1'
                 Provider: CodeBuild
-              Configuration:
-                ProjectName: !Ref CodeBuildPackager
+                Version: '1'
               InputArtifacts:
                 - Name: SourceOutput
               OutputArtifacts:
                 - Name: BuildOutput
-
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
         - Name: Deploy
           Actions:
-            - Name: CodeDeployAction
+            - Name: Deploy
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
                 Provider: CodeDeployToECS
                 Version: '1'
+              InputArtifacts:
+                - Name: BuildOutput
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup
                 TaskDefinitionTemplateArtifact: BuildOutput
                 TaskDefinitionTemplatePath: taskdef.json
                 AppSpecTemplateArtifact: BuildOutput
-                AppSpecTemplatePath: appspec.yaml
-              InputArtifacts:
-                - Name: BuildOutput
+                AppSpecTemplatePath: appspec.yml
 
-  # CodeBuild packager (creates taskdef.json + appspec.yaml)
-  CodeBuildPackager:
-      Type: AWS::CodeBuild::Project
-      Properties:
-        Name: !Sub ${Environment}-build-project
-        ServiceRole: !GetAtt CodeBuildServiceRole.Arn
-        Artifacts:
-          Type: CODEPIPELINE
-        LogsConfig:
-          CloudWatchLogs:
-            Status: ENABLED
-            GroupName: !Sub /codebuild/${Environment}-log-group
-            StreamName: !Sub ${Environment}-build-log
-        Environment:
-          ComputeType: BUILD_GENERAL1_SMALL
-          Image: aws/codebuild/standard:7.0
-          Type: LINUX_CONTAINER
-        Source:
-          Type: CODEPIPELINE
-          BuildSpec: !Sub |
-            version: 0.2
-            phases:
-              build:
-                commands:
-                  - echo "Writing appspec.yml"
-                  - |
-                    cat > appspec.yml <<EOL
-                    version: 0.0
-                    Resources:
-                      - TargetService:
-                          Type: AWS::ECS::Service
-                          Properties:
-                            TaskDefinition: arn:aws:ecs:eu-central-1:414392949441:task-definition/ecs-cicd-lab-dev-task:22
-                            LoadBalancerInfo:
-                              ContainerName: ecs-stack-container
-                              ContainerPort: 80
-                    EOL
-        
-                  - echo "Exporting taskdef.json"
-                  - |
-                    cat > taskdef.json <<EOL
+CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-build-project
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+        Name: BuildOutput
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/standard:7.0'
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref AWS::AccountId
+          - Name: AWS_REGION
+            Value: !Ref AWS::Region
+          - Name: ECR_REPO_NAME
+            Value: !Ref EcrRepoName
+          - Name: CONTAINER_PORT
+            Value: !Ref ContainerPort
+          - Name: ECS_TASK_EXECUTION_ROLE_ARN
+            Value: !GetAtt EcsTaskExecutionRole.Arn
+          - Name: ECS_TASK_ROLE_ARN
+            Value: !GetAtt EcsTaskRole.Arn
+      Source:
+        Type: CODEPIPELINE
+      BuildSpec: !Sub |
+        version: 0.2
+        phases:
+          install:
+            runtime-versions:
+              docker: 18
+          build:
+            commands:
+              - echo "Generating task definition and app spec files..."
+              - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME
+              - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+              - IMAGE_TAG=${COMMIT_HASH:-latest}
+              - printf '[{"name":"app","image":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > taskdef.json
+              - |
+                printf '{
+                  "version": "0.0",
+                  "Resources": [
                     {
-                      "family": "${Environment}-task-definition",
-                      "networkMode": "awsvpc",
-                      "requiresCompatibilities": ["FARGATE"],
-                      "cpu": "256",
-                      "memory": "512",
-                      "executionRoleArn": "${EcsTaskExecutionRole.Arn}",
-                      "containerDefinitions": [
-                        {
-                          "name": "${Environment}-container",
-                          "image": "<IMAGE1_NAME>",
-                          "portMappings": [
-                            {
-                              "containerPort": ${ContainerPort},
-                              "protocol": "tcp"
-                            }
-                          ],
-                          "logConfiguration": {
-                            "logDriver": "awslogs",
-                            "options": {
-                              "awslogs-group": "/ecs/${Environment}-log-group",
-                              "awslogs-region": "${AWS::Region}",
-                              "awslogs-stream-prefix": "${Environment}-container-log"
-                            }
+                      "TargetService": {
+                        "Type": "AWS::ECS::Service",
+                        "Properties": {
+                          "TaskDefinition": "<TASK_DEFINITION_ARN>",
+                          "LoadBalancerInfo": {
+                            "ContainerName": "app",
+                            "ContainerPort": %s
                           }
                         }
-                      ]
+                      }
                     }
-                    EOL
-            artifacts:
-              files:
-                - appspec.yml
-                - taskdef.json
-        TimeoutInMinutes: 10
-        Description: "Generates ECS AppSpec and TaskDef for CodeDeploy ECS Blue/Green"
-        Cache:
-          Type: NO_CACHE
+                  ]
+                }' $CONTAINER_PORT > appspec.yml
+        artifacts:
+          files:
+            - 'appspec.yml'
+            - 'taskdef.json'
   ###################################
   # EventBridge rule to trigger pipeline on ECR image push
   ###################################
