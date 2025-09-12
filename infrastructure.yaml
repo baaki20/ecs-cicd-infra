@@ -731,7 +731,7 @@ Resources:
       Type: AWS::CodeBuild::Project
       Properties:
         Name: !Sub ${EnvironmentName}-build-project
-        ServiceRole: !GetAtt CodeBuildRole.Arn
+        ServiceRole: !GetAtt CodeBuildServiceRole.Arn
         Artifacts:
           Type: CODEPIPELINE
         LogsConfig:
