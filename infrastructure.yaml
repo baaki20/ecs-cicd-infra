@@ -793,7 +793,7 @@ Resources:
                         Properties:
                           TaskDefinition: TASK_DEFINITION
                           LoadBalancerInfo:
-                            ContainerName: app
+                            ContainerName: "app"
                             ContainerPort: $CONTAINER_PORT
                   EOF
           artifacts:
