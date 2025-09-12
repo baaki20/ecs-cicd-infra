@@ -415,6 +415,7 @@ Resources:
                     - codedeploy:GetDeploymentConfig
                     - codedeploy:RegisterApplicationRevision
                     - codedeploy:GetApplication
+                    - codedeploy:GetApplicationRevision
                     - codedeploy:ListApplications
                     - codedeploy:ListDeploymentGroups
                   Resource: '*'
