@@ -730,15 +730,15 @@ Resources:
   CodeBuildPackager:
       Type: AWS::CodeBuild::Project
       Properties:
-        Name: !Sub ${ Environment}-build-project
+        Name: !Sub ${Environment}-build-project
         ServiceRole: !GetAtt CodeBuildServiceRole.Arn
         Artifacts:
           Type: CODEPIPELINE
         LogsConfig:
           CloudWatchLogs:
             Status: ENABLED
-            GroupName: !Sub /codebuild/${ Environment}-log-group
-            StreamName: !Sub ${ Environment}-build-log
+            GroupName: !Sub /codebuild/${Environment}-log-group
+            StreamName: !Sub ${Environment}-build-log
         Environment:
           ComputeType: BUILD_GENERAL1_SMALL
           Image: aws/codebuild/standard:7.0
@@ -768,7 +768,7 @@ Resources:
                   - |
                     cat > taskdef.json <<EOL
                     {
-                      "family": "${ Environment}-task-definition",
+                      "family": "${Environment}-task-definition",
                       "networkMode": "awsvpc",
                       "requiresCompatibilities": ["FARGATE"],
                       "cpu": "256",
@@ -776,7 +776,7 @@ Resources:
                       "executionRoleArn": "${EcsTaskExecutionRole.Arn}",
                       "containerDefinitions": [
                         {
-                          "name": "${ Environment}-container",
+                          "name": "${Environment}-container",
                           "image": "<IMAGE1_NAME>",
                           "portMappings": [
                             {
@@ -787,9 +787,9 @@ Resources:
                           "logConfiguration": {
                             "logDriver": "awslogs",
                             "options": {
-                              "awslogs-group": "/ecs/${ Environment}-log-group",
+                              "awslogs-group": "/ecs/${Environment}-log-group",
                               "awslogs-region": "${AWS::Region}",
-                              "awslogs-stream-prefix": "${ Environment}-container-log"
+                              "awslogs-stream-prefix": "${Environment}-container-log"
                             }
                           }
                         }
