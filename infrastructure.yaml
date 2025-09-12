@@ -489,6 +489,17 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                  - ecs:RegisterTaskDefinition
+                  - ecs:DescribeTaskDefinition
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt EcsTaskExecutionRole.Arn
+                  - !GetAtt EcsTaskRole.Arn
+              - Effect: Allow
+                Action:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
@@ -740,6 +751,8 @@ Resources:
             Value: !Ref ProjectName
           - Name: ENVIRONMENT
             Value: !Ref Environment
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref AWS::AccountId
           - Name: AWS_DEFAULT_REGION
             Value: !Ref AWS::Region
           - Name: TASK_EXECUTION_ROLE_ARN
@@ -755,6 +768,11 @@ Resources:
             build:
               commands:
                 - echo "Generating taskdef.json"
+                - echo "Getting ECR image URI..."
+                - ECR_IMAGE_URI=$(aws ecr describe-images --repository-name $ECR_REPO --image-ids imageTag=latest --query 'imageDetails[0]' --output text --region $AWS_DEFAULT_REGION)
+                - ECR_REGISTRY=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+                - FULL_IMAGE_URI=$ECR_REGISTRY/$ECR_REPO:latest
+                - echo "Using image URI: $FULL_IMAGE_URI"
                 - |
                   cat > taskdef.json <<EOF
                   {
@@ -768,7 +786,7 @@ Resources:
                     "containerDefinitions": [
                       {
                         "name": "app",
-                        "image": "<IMAGE1_URI>",
+                        "image": "$FULL_IMAGE_URI",
                         "essential": true,
                         "portMappings": [ { "containerPort": $CONTAINER_PORT } ],
                         "logConfiguration": {
@@ -791,11 +809,12 @@ Resources:
                     - TargetService:
                         Type: AWS::ECS::Service
                         Properties:
-                          TaskDefinition: arn:aws:ecs:eu-central-1:414392949441:task-definition/ecs-cicd-lab-dev-task:20
+                          TaskDefinition: <TASK_DEFINITION>
                           LoadBalancerInfo:
                             ContainerName: app
                             ContainerPort: $CONTAINER_PORT
                   EOF
+
           artifacts:
             files:
               - taskdef.json
