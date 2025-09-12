@@ -722,11 +722,11 @@ Resources:
                 TaskDefinitionTemplateArtifact: BuildOutput
                 TaskDefinitionTemplatePath: taskdef.json
                 AppSpecTemplateArtifact: BuildOutput
-                AppSpecTemplatePath: appspec.yaml
+                AppSpecTemplatePath: appspec. yml
               InputArtifacts:
                 - Name: BuildOutput
 
-  # CodeBuild packager (creates taskdef.json + appspec.yaml)
+  # CodeBuild packager (creates taskdef.json + appspec. yml)
   CodeBuildPackager:
       Type: AWS::CodeBuild::Project
       Properties:
@@ -750,7 +750,7 @@ Resources:
             phases:
               build:
                 commands:
-                  - echo "Writing appspec.yml"
+                  - echo "Writing appspec. yml"
                   - |
                     cat > appspec.yml <<EOL
                     version: 0.0
@@ -760,7 +760,7 @@ Resources:
                           Properties:
                             TaskDefinition: arn:aws:ecs:eu-central-1:414392949441:task-definition/ecs-cicd-lab-dev-task:22
                             LoadBalancerInfo:
-                              ContainerName: dev-container
+                              ContainerName: app
                               ContainerPort: 80
                     EOL
         
@@ -773,10 +773,10 @@ Resources:
                       "requiresCompatibilities": ["FARGATE"],
                       "cpu": "256",
                       "memory": "512",
-                      "executionRoleArn": "${EcsTaskExecutionRole.Arn}",
+                      "executionRoleArn": "${EcsTaskExecutionRoleArn}",
                       "containerDefinitions": [
                         {
-                          "name": "${Environment}-container",
+                          "name": "app",
                           "image": "<IMAGE1_NAME>",
                           "portMappings": [
                             {
