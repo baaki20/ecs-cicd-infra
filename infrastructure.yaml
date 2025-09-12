@@ -722,7 +722,7 @@ Resources:
                 TaskDefinitionTemplateArtifact: BuildOutput
                 TaskDefinitionTemplatePath: taskdef.json
                 AppSpecTemplateArtifact: BuildOutput
-                AppSpecTemplatePath: appspec. yml
+                AppSpecTemplatePath: appspec.yml
               InputArtifacts:
                 - Name: BuildOutput
 
@@ -758,7 +758,7 @@ Resources:
                       - TargetService:
                           Type: AWS::ECS::Service
                           Properties:
-                            TaskDefinition: arn:aws:ecs:eu-central-1:414392949441:task-definition/ecs-cicd-lab-dev-task:22
+                            TaskDefinition: ${EcsTaskDefinition}
                             LoadBalancerInfo:
                               ContainerName: app
                               ContainerPort: 80
@@ -768,12 +768,12 @@ Resources:
                   - |
                     cat > taskdef.json <<EOL
                     {
-                      "family": "${Environment}-task-definition",
+                      "family": "${ProjectName}-${Environment}-task",
                       "networkMode": "awsvpc",
                       "requiresCompatibilities": ["FARGATE"],
-                      "cpu": "256",
-                      "memory": "512",
-                      "executionRoleArn": "${EcsTaskExecutionRoleArn}",
+                      "cpu": "${TaskCpu}",
+                      "memory": "${TaskMemory}",
+                      "executionRoleArn": "${EcsTaskExecutionRole.Arn}",
                       "containerDefinitions": [
                         {
                           "name": "app",
@@ -787,7 +787,7 @@ Resources:
                           "logConfiguration": {
                             "logDriver": "awslogs",
                             "options": {
-                              "awslogs-group": "/ecs/${Environment}-log-group",
+                              "awslogs-group": "/ecs/${ProjectName}/${Environment}",
                               "awslogs-region": "${AWS::Region}",
                               "awslogs-stream-prefix": "${Environment}-container-log"
                             }
