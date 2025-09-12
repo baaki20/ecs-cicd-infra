@@ -773,7 +773,7 @@ Resources:
                       "requiresCompatibilities": ["FARGATE"],
                       "cpu": "256",
                       "memory": "512",
-                      "executionRoleArn": "${ECSTaskExecutionRole.Arn}",
+                      "executionRoleArn": "${EcsTaskExecutionRole.Arn}",
                       "containerDefinitions": [
                         {
                           "name": "${EnvironmentName}-container",
