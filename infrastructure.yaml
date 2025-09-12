@@ -703,68 +703,68 @@ Resources:
                 AppSpecTemplateArtifact: BuildOutput
                 AppSpecTemplatePath: appspec.yml
 
-CodeBuildProject:
-    Type: AWS::CodeBuild::Project
-    Properties:
-      Name: !Sub ${ProjectName}-${Environment}-build-project
-      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
-      Artifacts:
-        Type: CODEPIPELINE
-        Name: BuildOutput
-      Environment:
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: 'aws/codebuild/standard:7.0'
-        Type: LINUX_CONTAINER
-        EnvironmentVariables:
-          - Name: AWS_ACCOUNT_ID
-            Value: !Ref AWS::AccountId
-          - Name: AWS_REGION
-            Value: !Ref AWS::Region
-          - Name: ECR_REPO_NAME
-            Value: !Ref EcrRepoName
-          - Name: CONTAINER_PORT
-            Value: !Ref ContainerPort
-          - Name: ECS_TASK_EXECUTION_ROLE_ARN
-            Value: !GetAtt EcsTaskExecutionRole.Arn
-          - Name: ECS_TASK_ROLE_ARN
-            Value: !GetAtt EcsTaskRole.Arn
-      Source:
-        Type: CODEPIPELINE
-      BuildSpec: !Sub |
-        version: 0.2
-        phases:
-          install:
-            runtime-versions:
-              docker: 18
-          build:
-            commands:
-              - echo "Generating task definition and app spec files..."
-              - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME
-              - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-              - IMAGE_TAG=${COMMIT_HASH:-latest}
-              - printf '[{"name":"app","image":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > taskdef.json
-              - |
-                printf '{
-                  "version": "0.0",
-                  "Resources": [
-                    {
-                      "TargetService": {
-                        "Type": "AWS::ECS::Service",
-                        "Properties": {
-                          "TaskDefinition": "<TASK_DEFINITION_ARN>",
-                          "LoadBalancerInfo": {
-                            "ContainerName": "app",
-                            "ContainerPort": %s
+  CodeBuildProject:
+      Type: AWS::CodeBuild::Project
+      Properties:
+        Name: !Sub ${ProjectName}-${Environment}-build-project
+        ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+        Artifacts:
+          Type: CODEPIPELINE
+          Name: BuildOutput
+        Environment:
+          ComputeType: BUILD_GENERAL1_SMALL
+          Image: 'aws/codebuild/standard:7.0'
+          Type: LINUX_CONTAINER
+          EnvironmentVariables:
+            - Name: AWS_ACCOUNT_ID
+              Value: !Ref AWS::AccountId
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: ECR_REPO_NAME
+              Value: !Ref EcrRepoName
+            - Name: CONTAINER_PORT
+              Value: !Ref ContainerPort
+            - Name: ECS_TASK_EXECUTION_ROLE_ARN
+              Value: !GetAtt EcsTaskExecutionRole.Arn
+            - Name: ECS_TASK_ROLE_ARN
+              Value: !GetAtt EcsTaskRole.Arn
+        Source:
+          Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.2
+          phases:
+            install:
+              runtime-versions:
+                docker: 18
+            build:
+              commands:
+                - echo "Generating task definition and app spec files..."
+                - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME
+                - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+                - IMAGE_TAG=${COMMIT_HASH:-latest}
+                - printf '[{"name":"app","image":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > taskdef.json
+                - |
+                  printf '{
+                    "version": "0.0",
+                    "Resources": [
+                      {
+                        "TargetService": {
+                          "Type": "AWS::ECS::Service",
+                          "Properties": {
+                            "TaskDefinition": "<TASK_DEFINITION_ARN>",
+                            "LoadBalancerInfo": {
+                              "ContainerName": "app",
+                              "ContainerPort": %s
+                            }
                           }
                         }
                       }
-                    }
-                  ]
-                }' $CONTAINER_PORT > appspec.yml
-        artifacts:
-          files:
-            - 'appspec.yml'
-            - 'taskdef.json'
+                    ]
+                  }' $CONTAINER_PORT > appspec.yml
+          artifacts:
+            files:
+              - 'appspec.yml'
+              - 'taskdef.json'
   ###################################
   # EventBridge rule to trigger pipeline on ECR image push
   ###################################
