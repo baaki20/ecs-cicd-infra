@@ -778,7 +778,7 @@ Resources:
                       "containerDefinitions": [
                         {
                           "name": "app",
-                          "image": "414392949441.dkr.ecr.eu-central-1.amazonaws.com/ecs-cicd-lab/app:c92535a2271b77ede174a2071e4b700ec1abe548",
+                          "image": "$IMAGE_URI",
                           "portMappings": [
                             {
                               "containerPort": ${ContainerPort},
