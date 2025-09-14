@@ -527,6 +527,28 @@ Resources:
     Properties:
       ClusterName: !Sub ${ProjectName}-${Environment}
 
+  EcsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${ProjectName}-${Environment}-task
+      RequiresCompatibilities: [FARGATE]
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      ContainerDefinitions:
+        - Name: app
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepoName}:latest
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref AppLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+
   EcsService:
     Type: AWS::ECS::Service
     DependsOn: HttpListener
@@ -535,6 +557,7 @@ Resources:
       Cluster: !Ref EcsCluster
       DesiredCount: !Ref DesiredCount
       LaunchType: FARGATE
+      TaskDefinition: !Ref EcsTaskDefinition
       DeploymentController: 
         Type: CODE_DEPLOY
       NetworkConfiguration:
@@ -549,7 +572,6 @@ Resources:
         - ContainerName: app
           ContainerPort: !Ref ContainerPort
           TargetGroupArn: !Ref TargetGroupBlue
-      TaskDefinition: !Sub "placeholder"
 
   ###################################
   # Application Auto Scaling (ECS DesiredCount)
