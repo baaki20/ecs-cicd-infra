@@ -558,8 +558,7 @@ Resources:
       DesiredCount: !Ref DesiredCount
       LaunchType: FARGATE
       TaskDefinition: !Ref EcsTaskDefinition
-      DeploymentController: 
-        Type: CODE_DEPLOY
+      DeploymentController: { Type: CODE_DEPLOY }
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -728,92 +727,92 @@ Resources:
                 - Name: BuildOutput
 
   # CodeBuild packager (creates taskdef.json + appspec. yml)
-  CodeBuildPackager:
-    Type: AWS::CodeBuild::Project
-    Properties:
-      Name: !Sub ${Environment}-build-project
-      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
-      Artifacts:
-        Type: CODEPIPELINE
-      LogsConfig:
-        CloudWatchLogs:
-          Status: ENABLED
-          GroupName: !Sub /codebuild/${Environment}-log-group
-          StreamName: !Sub ${Environment}-build-log
-      Environment:
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/standard:7.0
-        Type: LINUX_CONTAINER
-        EnvironmentVariables:
-          - Name: IMAGE_REPO
-            Value: !Ref EcrRepoName
-          - Name: EXECUTION_ROLE_ARN
-            Value: !GetAtt EcsTaskExecutionRole.Arn
-          - Name: TASK_CPU
-            Value: !Ref TaskCpu
-          - Name: TASK_MEMORY
-            Value: !Ref TaskMemory
-          - Name: CONTAINER_PORT
-            Value: !Ref ContainerPort
-          - Name: PROJECT_NAME
-            Value: !Ref ProjectName
-          - Name: ENVIRONMENT
-            Value: !Ref Environment
-          - Name: AWS_ACCOUNT_ID
-            Value: !Ref AWS::AccountId
-          - Name: AWS_REGION
-            Value: !Ref AWS::Region
+CodeBuildPackager:
+  Type: AWS::CodeBuild::Project
+  Properties:
+    Name: !Sub ${Environment}-build-project
+    ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+    Artifacts:
+      Type: CODEPIPELINE
+    LogsConfig:
+      CloudWatchLogs:
+        Status: ENABLED
+        GroupName: !Sub /codebuild/${Environment}-log-group
+        StreamName: !Sub ${Environment}-build-log
+    Environment:
+      ComputeType: BUILD_GENERAL1_SMALL
+      Image: aws/codebuild/standard:7.0
+      Type: LINUX_CONTAINER
+      EnvironmentVariables:
+        - Name: IMAGE_REPO
+          Value: !Ref EcrRepoName
+        - Name: EXECUTION_ROLE_ARN
+          Value: !GetAtt EcsTaskExecutionRole.Arn
+        - Name: TASK_CPU
+          Value: !Ref TaskCpu
+        - Name: TASK_MEMORY
+          Value: !Ref TaskMemory
+        - Name: CONTAINER_PORT
+          Value: !Ref ContainerPort
+        - Name: PROJECT_NAME
+          Value: !Ref ProjectName
+        - Name: ENVIRONMENT
+          Value: !Ref Environment
+        - Name: AWS_ACCOUNT_ID
+          Value: !Ref AWS::AccountId
+        - Name: AWS_REGION
+          Value: !Ref AWS::Region
 
-      Source:
-        Type: CODEPIPELINE
-        BuildSpec: |
-          version: 0.2
-          phases:
-            build:
-              commands:
-                - echo "Writing appspec.yml"
-                - |
-                  cat > appspec.yml <<EOL
-                  version: 0.0
-                  Resources:
-                    - TargetService:
-                        Type: AWS::ECS::Service
-                        Properties:
-                          TaskDefinition: <TASK_DEFINITION>
-                          LoadBalancerInfo:
-                            ContainerName: app
-                            ContainerPort: $CONTAINER_PORT
-                  EOL
+    Source:
+      Type: CODEPIPELINE
+      BuildSpec: |
+        version: 0.2
+        phases:
+          build:
+            commands:
+              - echo "Writing appspec.yml"
+              - |
+                cat > appspec.yml <<EOL
+                version: 0.0
+                Resources:
+                  - TargetService:
+                      Type: AWS::ECS::Service
+                      Properties:
+                        TaskDefinition: <TASK_DEFINITION>
+                        LoadBalancerInfo:
+                          ContainerName: app
+                          ContainerPort: $CONTAINER_PORT
+                EOL
 
-                - echo "Exporting taskdef.json"
-                - IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:latest"
-                - |
-                  cat > taskdef.json <<EOL
-                  {
-                    "family": "$PROJECT_NAME-$ENVIRONMENT-task",
-                    "networkMode": "awsvpc",
-                    "requiresCompatibilities": ["FARGATE"],
-                    "cpu": "$TASK_CPU",
-                    "memory": "$TASK_MEMORY",
-                    "executionRoleArn": "$EXECUTION_ROLE_ARN",
-                    "containerDefinitions": [
-                      {
-                        "name": "app",
-                        "image": "$IMAGE_URI",
-                        "portMappings": [
-                          {
-                            "containerPort": $CONTAINER_PORT,
-                            "protocol": "tcp"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                  EOL
-          artifacts:
-            files:
-              - appspec.yml
-              - taskdef.json
+              - echo "Exporting taskdef.json"
+              - IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO:latest"
+              - |
+                cat > taskdef.json <<EOL
+                {
+                  "family": "$PROJECT_NAME-$ENVIRONMENT-task",
+                  "networkMode": "awsvpc",
+                  "requiresCompatibilities": ["FARGATE"],
+                  "cpu": "$TASK_CPU",
+                  "memory": "$TASK_MEMORY",
+                  "executionRoleArn": "$EXECUTION_ROLE_ARN",
+                  "containerDefinitions": [
+                    {
+                      "name": "app",
+                      "image": "$IMAGE_URI",
+                      "portMappings": [
+                        {
+                          "containerPort": $CONTAINER_PORT,
+                          "protocol": "tcp"
+                        }
+                      ]
+                    }
+                  ]
+                }
+                EOL
+        artifacts:
+          files:
+            - appspec.yml
+            - taskdef.json
 
   ###################################
   # EventBridge rule to trigger pipeline on ECR image push
