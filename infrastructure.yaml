@@ -761,7 +761,7 @@ Resources:
                             TaskDefinition: ${EcsTaskDefinition}
                             LoadBalancerInfo:
                               ContainerName: app
-                              ContainerPort: 80
+                              ContainerPort: 8080
                     EOL
         
                   - echo "Exporting taskdef.json"
