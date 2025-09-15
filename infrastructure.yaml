@@ -704,9 +704,9 @@ Resources:
               Configuration:
                 ProjectName: !Ref CodeBuildPackager
               InputArtifacts:
-                - Name: SourceOutput
-              OutputArtifacts:
                 - Name: ImageArtifact
+              OutputArtifacts:
+                - Name: BuildOutput
 
         - Name: Deploy
           Actions:
@@ -753,7 +753,7 @@ Resources:
             phases:
               build:
                 commands:
-                  - echo "Generating appspec.yml"
+                  - echo "Generating appspec.yml with placeholder"
                   - |
                     cat > appspec.yml <<EOL
                     version: 0.0
@@ -761,14 +761,12 @@ Resources:
                       - TargetService:
                           Type: AWS::ECS::Service
                           Properties:
-                            TaskDefinition: ${EcsTaskDefinition}
+                            TaskDefinition: <TASK_DEFINITION>  # FIXED: CodeDeploy placeholder
                             LoadBalancerInfo:
                               ContainerName: app
-                              ContainerPort: 80
+                              ContainerPort: !Ref ContainerPort  # Use param (was hardcoded 80)
                     EOL
-        
-                  - echo "Exporting taskdef.json"
-                  - IMAGE_URI="${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepoName}:latest"
+                  - echo "Exporting taskdef.json with placeholder"
                   - |
                     cat > taskdef.json <<EOL
                     {
@@ -781,10 +779,10 @@ Resources:
                       "containerDefinitions": [
                         {
                           "name": "app",
-                          "image": "$IMAGE_URI",
+                          "image": "<IMAGE1_NAME>",  # FIXED: Exact CodeDeploy placeholder
                           "portMappings": [
                             {
-                              "containerPort": ${ContainerPort},
+                              "containerPort": !Ref ContainerPort,
                               "protocol": "tcp"
                             }
                           ],
@@ -804,10 +802,6 @@ Resources:
               files:
                 - appspec.yml
                 - taskdef.json
-        TimeoutInMinutes: 10
-        Description: "Generates ECS AppSpec and TaskDef for CodeDeploy ECS Blue/Green"
-        Cache:
-          Type: NO_CACHE
   ###################################
   # EventBridge rule to trigger pipeline on ECR image push
   ###################################
