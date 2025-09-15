@@ -724,7 +724,7 @@ Resources:
                 AppSpecTemplateArtifact: BuildOutput
                 AppSpecTemplatePath: appspec.yml
                 Image1ArtifactName: ImageArtifact  # Add this
-                Image1ContainerName: app  # Add this
+                Image1ContainerName: IMAGE1_NAME
               InputArtifacts:
                 - Name: BuildOutput
                 - Name: ImageArtifact  # Add this
